@@ -25,4 +25,18 @@ describe('ProductService', () => {
       orderBy: { createdAt: 'desc' },
     });
   });
+
+  it('searches active products by name without case sensitivity', async () => {
+    const products = [{ id: 'product-1', name: 'Migraine Journal' }];
+    findMany.mockResolvedValue(products);
+
+    await expect(service.searchByName('journal')).resolves.toBe(products);
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        isActive: true,
+        name: { contains: 'journal', mode: 'insensitive' },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  });
 });

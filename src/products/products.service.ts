@@ -11,4 +11,14 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  searchByName(name: string) {
+    return this.prisma.product.findMany({
+      where: {
+        isActive: true,
+        name: { contains: name, mode: 'insensitive' },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

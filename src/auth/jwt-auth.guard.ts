@@ -8,7 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 
 type AuthenticatedRequest = Request & {
-  user?: { sub: string };
+  user?: { sub: string; exp: number };
 };
 
 @Injectable()
@@ -28,15 +28,20 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync<{ sub?: unknown }>(
-        token,
-      );
+      const payload = await this.jwtService.verifyAsync<{
+        sub?: unknown;
+        exp?: unknown;
+      }>(token);
 
       if (typeof payload.sub !== 'string' || payload.sub.length === 0) {
         throw new UnauthorizedException();
       }
 
-      request.user = { sub: payload.sub };
+      if (typeof payload.exp !== 'number') {
+        throw new UnauthorizedException();
+      }
+
+      request.user = { sub: payload.sub, exp: payload.exp };
       return true;
     } catch {
       throw new UnauthorizedException();

@@ -18,11 +18,11 @@ describe('JwtAuthGuard', () => {
 
   function createContext(authorization?: string): {
     context: ExecutionContext;
-    request: Request & { user?: { sub: string } };
+    request: Request & { user?: { sub: string; exp: number } };
   } {
     const request = {
       headers: { authorization },
-    } as Request & { user?: { sub: string } };
+    } as Request & { user?: { sub: string; exp: number } };
     const context = {
       switchToHttp: () => ({ getRequest: () => request }),
     } as ExecutionContext;
@@ -31,12 +31,12 @@ describe('JwtAuthGuard', () => {
   }
 
   it('accepts a valid bearer token and attaches its subject to the request', async () => {
-    verifyAsync.mockResolvedValue({ sub: 'user-1' });
+    verifyAsync.mockResolvedValue({ sub: 'user-1', exp: 1_900_000_000 });
     const { context, request } = createContext('Bearer valid-token');
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(verifyAsync).toHaveBeenCalledWith('valid-token');
-    expect(request.user).toEqual({ sub: 'user-1' });
+    expect(request.user).toEqual({ sub: 'user-1', exp: 1_900_000_000 });
   });
 
   it('rejects a request without a bearer token', async () => {
@@ -60,6 +60,13 @@ describe('JwtAuthGuard', () => {
     const { context: missingSubjectContext } = createContext('Bearer token');
 
     await expect(guard.canActivate(missingSubjectContext)).rejects.toThrow(
+      UnauthorizedException,
+    );
+
+    verifyAsync.mockResolvedValue({ sub: 'user-1' });
+    const { context: missingExpContext } = createContext('Bearer token');
+
+    await expect(guard.canActivate(missingExpContext)).rejects.toThrow(
       UnauthorizedException,
     );
   });
